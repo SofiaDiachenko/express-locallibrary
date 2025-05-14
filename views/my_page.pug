@@ -1,0 +1,10 @@
+extends layout
+
+block content
+  h1= title
+  p This page is displayed using Pug.
+
+  ul
+    each item in items
+      li: strong= item
+

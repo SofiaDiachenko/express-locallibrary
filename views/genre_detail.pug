@@ -1,0 +1,17 @@
+extends layout
+
+block content
+  h1= genre.name
+  if genre.description
+    p Опис: #{genre.description}
+
+  h2 Книги
+  if genre_books.length
+    ul
+      each book in genre_books
+        li
+          a(href=book.url)= book.title
+          |  - #{book.summary}
+  else
+    p У цього жанру немає книг.
+

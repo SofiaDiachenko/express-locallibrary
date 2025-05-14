@@ -1,0 +1,17 @@
+extends layout
+
+block content
+  h1= title
+  p Ласкаво просимо до LocalLibrary — базового прикладу сайту на Express.js, створеного як навчальний проєкт за підручником Mozilla Developer Network.
+
+  h2 Динамічна інформація
+  p У бібліотеці наразі зареєстровано:
+
+  ul
+    li Книг: #{book_count}
+    li Копій: #{book_instance_count}
+    li Доступних копій: #{book_instance_available_count}
+    li Авторів: #{author_count}
+    li Жанрів: #{genre_count}
+
+
