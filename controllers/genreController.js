@@ -76,20 +76,65 @@ exports.genre_create_post = [
 
 // Показати форму видалення жанру
 exports.genre_delete_get = asyncHandler(async (req, res, next) => {
-  res.send("NOT IMPLEMENTED: Genre delete GET");
+  const [genre, genre_books] = await Promise.all([
+    Genre.findById(req.params.id).exec(),
+    Book.find({ genre: req.params.id }, "title summary").exec(),
+  ]);
+
+  if (genre == null) {
+    // Жанр не знайдено
+    res.redirect("/catalog/genres");
+    return;
+  }
+
+  res.render("genre_delete", {
+    title: "Видалити жанр",
+    genre: genre,
+    genre_books: genre_books,
+  });
 });
 
 // Обробити POST-запит видалення жанру
 exports.genre_delete_post = asyncHandler(async (req, res, next) => {
-  res.send("NOT IMPLEMENTED: Genre delete POST");
+  const [genre, genre_books] = await Promise.all([
+    Genre.findById(req.body.genreid).exec(),
+    Book.find({ genre: req.body.genreid }, "title").exec(),
+  ]);
+
+  if (genre_books.length > 0) {
+    // Є книги, що використовують жанр — не можна видаляти
+    res.render("genre_delete", {
+      title: "Видалити жанр",
+      genre: genre,
+      genre_books: genre_books,
+    });
+    return;
+  } else {
+    // Немає залежностей — видаляємо
+    await Genre.findByIdAndDelete(req.body.genreid);
+    res.redirect("/catalog/genres");
+  }
 });
 
-// Показати форму оновлення жанру
+// GET
 exports.genre_update_get = asyncHandler(async (req, res, next) => {
-  res.send("NOT IMPLEMENTED: Genre update GET");
+  const genre = await Genre.findById(req.params.id);
+  if (!genre) return next(new Error("Жанр не знайдено"));
+  res.render("genre_form", { title: "Оновити жанр", genre });
 });
 
-// Обробити POST-запит оновлення жанру
-exports.genre_update_post = asyncHandler(async (req, res, next) => {
-  res.send("NOT IMPLEMENTED: Genre update POST");
-});
+// POST
+exports.genre_update_post = [
+  body("name", "Назва жанру обов'язкова").trim().isLength({ min: 1 }).escape(),
+  asyncHandler(async (req, res, next) => {
+    const errors = validationResult(req);
+    const genre = new Genre({ name: req.body.name, _id: req.params.id });
+
+    if (!errors.isEmpty()) {
+      return res.render("genre_form", { title: "Оновити жанр", genre, errors: errors.array() });
+    } else {
+      const updatedGenre = await Genre.findByIdAndUpdate(req.params.id, genre, {});
+      res.redirect(updatedGenre.url);
+    }
+  }),
+];

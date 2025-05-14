@@ -1,0 +1,17 @@
+extends layout
+
+block content
+  h1 Видалити жанр: #{genre.name}
+
+  if genre_books.length
+    p Не можна видалити цей жанр, бо до нього прив'язані книги:
+    ul
+      each book in genre_books
+        li
+          a(href=book.url)= book.title
+  else
+    p Ви впевнені, що хочете видалити жанр: "#{genre.name}"?
+
+    form(method='POST', action=`/catalog/genre/${genre._id}/delete`)
+      input(type='hidden', name='genreid', value=genre._id)
+      button(type='submit') Підтвердити видалення

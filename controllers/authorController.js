@@ -97,16 +97,52 @@ exports.author_create_get = (req, res, next) => {
 
 
   
-  // Display Author delete form on GET.
-  exports.author_delete_get = asyncHandler(async (req, res, next) => {
-    res.send("NOT IMPLEMENTED: Author delete GET");
+  // Відображення форми видалення автора при GET-запиті.
+exports.author_delete_get = asyncHandler(async (req, res, next) => {
+  // Отримання деталей автора та всіх його книг (паралельно)
+  const [author, allBooksByAuthor] = await Promise.all([
+    Author.findById(req.params.id).exec(),
+    Book.find({ author: req.params.id }, "title summary").exec(),
+  ]);
+
+  if (author === null) {
+    // Немає результатів.
+    res.redirect("/catalog/authors");
+  }
+
+  res.render("author_delete", {
+    title: "Видалити автора",
+    author: author,
+    author_books: allBooksByAuthor,
   });
+});
+
+
   
-  // Handle Author delete on POST.
-  exports.author_delete_post = asyncHandler(async (req, res, next) => {
-    res.send("NOT IMPLEMENTED: Author delete POST");
-  });
-  
+  // Обробка видалення автора при POST-запиті.
+exports.author_delete_post = asyncHandler(async (req, res, next) => {
+  // Отримання деталей автора та всіх його книг (паралельно)
+  const [author, allBooksByAuthor] = await Promise.all([
+    Author.findById(req.params.id).exec(),
+    Book.find({ author: req.params.id }, "title summary").exec(),
+  ]);
+
+  if (allBooksByAuthor.length > 0) {
+    // У автора є книги. Відображення так само, як і для GET-маршруту.
+    res.render("author_delete", {
+      title: "Видалити автора",
+      author: author,
+      author_books: allBooksByAuthor,
+    });
+    return;
+  } else {
+    // У автора немає книг. Видалення об'єкта та перенаправлення на список авторів.
+    await Author.findByIdAndDelete(req.body.authorid);
+    res.redirect("/catalog/authors");
+  }
+});
+
+
   // Display Author update form on GET.
   exports.author_update_get = asyncHandler(async (req, res, next) => {
     res.send("NOT IMPLEMENTED: Author update GET");

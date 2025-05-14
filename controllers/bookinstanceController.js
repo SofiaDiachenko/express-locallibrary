@@ -73,23 +73,77 @@ exports.bookinstance_create_post = [
 ];
 
 
-// Display BookInstance delete form on GET.
+// GET
 exports.bookinstance_delete_get = asyncHandler(async (req, res, next) => {
-  res.send("NOT IMPLEMENTED: BookInstance delete GET");
+  const bookinstance = await BookInstance.findById(req.params.id).populate('book').exec();
+  if (!bookinstance) return res.redirect('/catalog/bookinstances');
+  res.render('bookinstance_delete', { title: 'Видалити екземпляр книги', bookinstance });
 });
 
-// Handle BookInstance delete on POST.
+// POST
 exports.bookinstance_delete_post = asyncHandler(async (req, res, next) => {
-  res.send("NOT IMPLEMENTED: BookInstance delete POST");
+  await BookInstance.findByIdAndDelete(req.body.bookinstanceid);
+  res.redirect('/catalog/bookinstances');
 });
 
 // Display BookInstance update form on GET.
 exports.bookinstance_update_get = asyncHandler(async (req, res, next) => {
-  res.send("NOT IMPLEMENTED: BookInstance update GET");
+  // Отримати поточний екземпляр книги та список усіх книг для вибору
+  const [bookinstance, books] = await Promise.all([
+    BookInstance.findById(req.params.id).populate("book").exec(),
+    Book.find({}, "title").exec(),
+  ]);
+
+  if (bookinstance == null) {
+    const err = new Error("Екземпляр книги не знайдено");
+    err.status = 404;
+    return next(err);
+  }
+
+  res.render("bookinstance_form", {
+    title: "Оновити екземпляр книги",
+    book_list: books,
+    selected_book: bookinstance.book._id,
+    bookinstance: bookinstance,
+  });
 });
 
 // Handle bookinstance update on POST.
-exports.bookinstance_update_post = asyncHandler(async (req, res, next) => {
-  res.send("NOT IMPLEMENTED: BookInstance update POST");
-});
+exports.bookinstance_update_post = [
+  // Перевірка та санітізація
+  body("book", "Книга обов'язкова").trim().isLength({ min: 1 }).escape(),
+  body("imprint", "Видавництво обов'язкове").trim().isLength({ min: 1 }).escape(),
+  body("status").escape(),
+  body("due_back", "Невірна дата").optional({ values: "falsy" }).isISO8601().toDate(),
+
+  asyncHandler(async (req, res, next) => {
+    const errors = validationResult(req);
+
+    const updatedBookInstance = new BookInstance({
+      book: req.body.book,
+      imprint: req.body.imprint,
+      status: req.body.status,
+      due_back: req.body.due_back,
+      _id: req.params.id,
+    });
+
+    if (!errors.isEmpty()) {
+      const books = await Book.find({}, "title").exec();
+
+      res.render("bookinstance_form", {
+        title: "Оновити екземпляр книги",
+        book_list: books,
+        selected_book: updatedBookInstance.book,
+        bookinstance: updatedBookInstance,
+        errors: errors.array(),
+      });
+      return;
+    } else {
+      // Зберігаємо
+      await BookInstance.findByIdAndUpdate(req.params.id, updatedBookInstance);
+      res.redirect(updatedBookInstance.url);
+    }
+  }),
+];
+
 
